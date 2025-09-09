@@ -1,0 +1,5 @@
+{
+  "name": "ID Document Verifier",
+  "description": "An AI-powered application to verify the authenticity of ID documents by analyzing an uploaded image. It extracts key information and provides a confidence score.",
+  "requestFramePermissions": []
+}
