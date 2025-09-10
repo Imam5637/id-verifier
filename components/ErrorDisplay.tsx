@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useLocalization } from '../hooks/useLocalization';
 
 interface ErrorDisplayProps {
   message: string;
@@ -13,18 +14,19 @@ const ErrorIcon = () => (
 );
 
 export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ message, onRetry }) => {
+  const { t } = useLocalization();
   return (
     <div className="bg-white p-8 rounded-xl shadow-lg text-center border border-red-200">
         <div className="flex justify-center mb-4">
             <ErrorIcon />
         </div>
-        <h2 className="text-2xl font-semibold text-status-red mb-2">An Error Occurred</h2>
+        <h2 className="text-2xl font-semibold text-status-red mb-2">{t('error.title')}</h2>
         <p className="text-gray-600 mb-6">{message}</p>
         <button
             onClick={onRetry}
             className="bg-brand-blue hover:bg-brand-dark text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue"
         >
-            Try Again
+            {t('error.retry_button')}
         </button>
     </div>
   );
