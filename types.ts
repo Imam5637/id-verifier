@@ -5,11 +5,21 @@ export enum VerificationStatus {
   UNSURE = 'UNSURE',
 }
 
+export interface BoundingBoxVertex {
+  x: number;
+  y: number;
+}
+
+export interface ExtractedField {
+  value: string | null;
+  boundingBox: BoundingBoxVertex[] | null;
+}
+
 export interface ExtractedData {
-  fullName: string | null;
-  idNumber: string | null;
-  dateOfBirth: string | null;
-  expiryDate: string | null;
+  fullName: ExtractedField;
+  idNumber: ExtractedField;
+  dateOfBirth: ExtractedField;
+  expiryDate: ExtractedField;
 }
 
 export interface VerificationData {

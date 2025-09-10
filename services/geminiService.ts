@@ -3,6 +3,27 @@ import { GoogleGenAI, Type } from "@google/genai";
 import type { VerificationData } from '../types';
 import { VerificationStatus } from '../types';
 
+const extractedFieldSchema = {
+    type: Type.OBJECT,
+    properties: {
+        value: { type: Type.STRING, description: "The extracted text value for the field.", nullable: true },
+        boundingBox: {
+            type: Type.ARRAY,
+            nullable: true,
+            description: "An array of 4 vertices representing the bounding box of the text on the image. Coordinates must be normalized (0.0 to 1.0), with (0,0) being the top-left corner.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
+                },
+                required: ["x", "y"]
+            }
+        }
+    },
+    required: ["value", "boundingBox"]
+};
+
 const verificationSchema = {
     type: Type.OBJECT,
     properties: {
@@ -18,10 +39,10 @@ const verificationSchema = {
         extractedData: {
             type: Type.OBJECT,
             properties: {
-                fullName: { type: Type.STRING, description: "The full name of the person.", nullable: true },
-                idNumber: { type: Type.STRING, description: "The ID number.", nullable: true },
-                dateOfBirth: { type: Type.STRING, description: "The date of birth in YYYY-MM-DD format.", nullable: true },
-                expiryDate: { type: Type.STRING, description: "The expiry date in YYYY-MM-DD format.", nullable: true },
+                fullName: { ...extractedFieldSchema, description: "The full name of the person." },
+                idNumber: { ...extractedFieldSchema, description: "The ID number." },
+                dateOfBirth: { ...extractedFieldSchema, description: "The date of birth in YYYY-MM-DD format." },
+                expiryDate: { ...extractedFieldSchema, description: "The expiry date in YYYY-MM-DD format." },
             },
             required: ["fullName", "idNumber", "dateOfBirth", "expiryDate"]
         },
@@ -50,7 +71,9 @@ export const verifyIdDocument = async (apiKey: string, base64Image: string, mime
     4.  **Text & Font Analysis:** Verify that fonts are consistent with official documents and that text is aligned properly.
     5.  **Overall Layout:** Compare the layout to standard templates for the identified document type if possible.
 
-    After your analysis, provide a response in a strict JSON format that conforms to the provided schema. Do not include any text, markdown, or backticks outside of the JSON object.
+    After your analysis, extract the key information from the document. For each piece of information, you MUST provide both the text value and a precise bounding box with 4 (x, y) vertices. The coordinates of the vertices must be normalized from 0.0 to 1.0, where (0,0) is the top-left corner. If a field cannot be found, its value should be null and its boundingBox should be null.
+
+    Provide a response in a strict JSON format that conforms to the provided schema. Do not include any text, markdown, or backticks outside of the JSON object.
   `;
 
   const imagePart = {
