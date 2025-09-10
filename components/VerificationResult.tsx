@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React from 'react';
 import type { VerificationData, ExtractedData } from '../types';
 import { VerificationStatus } from '../types';
 
@@ -45,8 +44,8 @@ const statusConfig = {
   },
 };
 
-const DataRow: React.FC<{ label: string; value: string | null; isLast?: boolean }> = ({ label, value, isLast }) => (
-    <div className={`flex justify-between items-center py-3 ${isLast ? '' : 'border-b border-gray-200'}`}>
+const DataRow: React.FC<{ label: string; value: string | null }> = ({ label, value }) => (
+    <div className="flex justify-between items-center py-3 border-b border-gray-200">
         <dt className="text-sm font-medium text-gray-500">{label}</dt>
         <dd className="text-sm text-gray-900 font-mono">{value || 'N/A'}</dd>
     </div>
@@ -70,32 +69,6 @@ const ConfidenceBar: React.FC<{ score: number }> = ({ score }) => {
 
 export const VerificationResult: React.FC<VerificationResultProps> = ({ result, imageSrc, onReset }) => {
     const currentStatus = statusConfig[result.status] || statusConfig[VerificationStatus.UNSURE];
-    const [highlightedField, setHighlightedField] = useState<keyof ExtractedData | null>(null);
-    const imageRef = useRef<HTMLImageElement>(null);
-    const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-
-    useLayoutEffect(() => {
-        const currentImageRef = imageRef.current;
-        if (!currentImageRef) return;
-
-        const resizeObserver = new ResizeObserver(() => {
-            setImageSize({
-                width: currentImageRef.offsetWidth,
-                height: currentImageRef.offsetHeight,
-            });
-        });
-        resizeObserver.observe(currentImageRef);
-        return () => resizeObserver.disconnect();
-    }, []);
-
-    const handleImageLoad = () => {
-        if (imageRef.current) {
-            setImageSize({
-                width: imageRef.current.offsetWidth,
-                height: imageRef.current.offsetHeight,
-            });
-        }
-    };
 
     const handleExport = () => {
         const dataString = JSON.stringify(result, null, 2);
@@ -103,22 +76,12 @@ export const VerificationResult: React.FC<VerificationResultProps> = ({ result, 
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `verification-result-${result.extractedData.idNumber?.value || Date.now()}.json`;
+        link.download = `verification-result-${result.extractedData.idNumber || Date.now()}.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     };
-    
-    const allowComparison = result.status === VerificationStatus.VERIFIED || result.status === VerificationStatus.UNSURE;
-    const highlightedBox = highlightedField ? result.extractedData[highlightedField]?.boundingBox : null;
-
-    const fieldMap: { key: keyof ExtractedData; label: string }[] = [
-        { key: 'fullName', label: 'Full Name' },
-        { key: 'idNumber', label: 'ID Number' },
-        { key: 'dateOfBirth', label: 'Date of Birth' },
-        { key: 'expiryDate', label: 'Expiry Date' },
-    ];
 
     return (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-fade-in">
@@ -136,48 +99,17 @@ export const VerificationResult: React.FC<VerificationResultProps> = ({ result, 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6 p-6 bg-gray-50/50">
                 <div className="md:col-span-2">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Uploaded Document</h3>
-                    <div className="relative">
-                        <img 
-                            ref={imageRef}
-                            src={imageSrc} 
-                            alt="Uploaded ID" 
-                            className="rounded-lg shadow-md border border-gray-200 w-full" 
-                            onLoad={handleImageLoad}
-                        />
-                        {allowComparison && highlightedBox && imageSize.width > 0 && (
-                            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}>
-                                <polygon
-                                    points={highlightedBox.map(p => `${p.x * imageSize.width},${p.y * imageSize.height}`).join(' ')}
-                                    className="fill-brand-blue/30 stroke-brand-blue stroke-2"
-                                />
-                            </svg>
-                        )}
-                    </div>
+                    <img src={imageSrc} alt="Uploaded ID" className="rounded-lg shadow-md border border-gray-200 w-full" />
                 </div>
 
                 <div className="md:col-span-3">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Extracted Information</h3>
-                    {allowComparison && (
-                        <p className="text-sm text-gray-500 mb-3">
-                            Hover over a field below to highlight it on the document.
-                        </p>
-                    )}
                     <div className="bg-white rounded-lg border border-gray-200 p-4">
                         <dl>
-                             {fieldMap.map(({ key, label }, index) => (
-                                <div
-                                    key={key}
-                                    onMouseEnter={() => allowComparison && setHighlightedField(key)}
-                                    onMouseLeave={() => allowComparison && setHighlightedField(null)}
-                                    className="cursor-pointer transition-colors duration-200 hover:bg-brand-light-blue/20 rounded-md -mx-4 px-4"
-                                >
-                                    <DataRow 
-                                        label={label} 
-                                        value={result.extractedData[key]?.value ?? null}
-                                        isLast={index === fieldMap.length - 1}
-                                    />
-                                </div>
-                            ))}
+                            <DataRow label="Full Name" value={result.extractedData.fullName} />
+                            <DataRow label="ID Number" value={result.extractedData.idNumber} />
+                            <DataRow label="Date of Birth" value={result.extractedData.dateOfBirth} />
+                            <DataRow label="Expiry Date" value={result.extractedData.expiryDate} />
                         </dl>
                     </div>
                     <div className="mt-6">

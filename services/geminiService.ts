@@ -3,27 +3,6 @@ import { GoogleGenAI, Type } from "@google/genai";
 import type { VerificationData } from '../types';
 import { VerificationStatus } from '../types';
 
-const extractedFieldSchema = {
-    type: Type.OBJECT,
-    properties: {
-        value: { type: Type.STRING, description: "The extracted text value for the field.", nullable: true },
-        boundingBox: {
-            type: Type.ARRAY,
-            nullable: true,
-            description: "An array of 4 vertices representing the bounding box of the text on the image. Coordinates must be normalized (0.0 to 1.0), with (0,0) being the top-left corner.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER }
-                },
-                required: ["x", "y"]
-            }
-        }
-    },
-    required: ["value", "boundingBox"]
-};
-
 const verificationSchema = {
     type: Type.OBJECT,
     properties: {
@@ -39,10 +18,10 @@ const verificationSchema = {
         extractedData: {
             type: Type.OBJECT,
             properties: {
-                fullName: { ...extractedFieldSchema, description: "The full name of the person." },
-                idNumber: { ...extractedFieldSchema, description: "The ID number." },
-                dateOfBirth: { ...extractedFieldSchema, description: "The date of birth in YYYY-MM-DD format." },
-                expiryDate: { ...extractedFieldSchema, description: "The expiry date in YYYY-MM-DD format." },
+                fullName: { type: Type.STRING, description: "The full name of the person.", nullable: true },
+                idNumber: { type: Type.STRING, description: "The ID number.", nullable: true },
+                dateOfBirth: { type: Type.STRING, description: "The date of birth in YYYY-MM-DD format.", nullable: true },
+                expiryDate: { type: Type.STRING, description: "The expiry date in YYYY-MM-DD format.", nullable: true },
             },
             required: ["fullName", "idNumber", "dateOfBirth", "expiryDate"]
         },
@@ -54,12 +33,10 @@ const verificationSchema = {
     required: ["status", "reasoning", "extractedData", "confidenceScore"]
 };
 
-export const verifyIdDocument = async (apiKey: string, base64Image: string, mimeType: string): Promise<VerificationData> => {
-  if (!apiKey) {
-    throw new Error("API Key is not configured. Please set it to proceed.");
-  }
-  
-  const ai = new GoogleGenAI({ apiKey });
+// Fix: Removed apiKey parameter to use environment variables directly as per guidelines.
+export const verifyIdDocument = async (base64Image: string, mimeType: string): Promise<VerificationData> => {
+  // Fix: Initializing GoogleGenAI with API key from environment variable as per guidelines.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const prompt = `
     You are an advanced AI identity verification system. Your task is to analyze the provided image of an identification document and determine its authenticity.
@@ -71,9 +48,7 @@ export const verifyIdDocument = async (apiKey: string, base64Image: string, mime
     4.  **Text & Font Analysis:** Verify that fonts are consistent with official documents and that text is aligned properly.
     5.  **Overall Layout:** Compare the layout to standard templates for the identified document type if possible.
 
-    After your analysis, extract the key information from the document. For each piece of information, you MUST provide both the text value and a precise bounding box with 4 (x, y) vertices. The coordinates of the vertices must be normalized from 0.0 to 1.0, where (0,0) is the top-left corner. If a field cannot be found, its value should be null and its boundingBox should be null.
-
-    Provide a response in a strict JSON format that conforms to the provided schema. Do not include any text, markdown, or backticks outside of the JSON object.
+    After your analysis, provide a response in a strict JSON format that conforms to the provided schema. Do not include any text, markdown, or backticks outside of the JSON object.
   `;
 
   const imagePart = {
@@ -103,6 +78,7 @@ export const verifyIdDocument = async (apiKey: string, base64Image: string, mime
 
   } catch (error) {
     console.error("Gemini API call failed:", error);
-    throw new Error("Failed to communicate with the AI verification service. Check if your API Key is valid.");
+    // Fix: Updated error message to be more generic and not expose API key details to the user.
+    throw new Error("Failed to communicate with the AI verification service. Please try again later.");
   }
 };
